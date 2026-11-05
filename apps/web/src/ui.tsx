@@ -41,6 +41,16 @@ export function VerifiedBadge() {
   )
 }
 
+/** A handle with the blue check beside it when the trader is broker-verified (Level 2). */
+export function HandleName({ handle, verified, mono }: { handle: string; verified?: boolean; mono?: boolean }) {
+  return (
+    <span className="handle-name">
+      <strong className={mono ? "num" : undefined}>{handle}</strong>
+      {verified && <VerifiedBadge />}
+    </span>
+  )
+}
+
 /** Level 2 shows the check; Level 1 shows a plain "self-reported" tag; Level 0 shows nothing. */
 export function LevelMark({ level }: { level: number }) {
   if (level >= 2) return <VerifiedBadge />

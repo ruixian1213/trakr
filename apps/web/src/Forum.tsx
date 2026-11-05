@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ApiError, api, fetchMe, type Post, type PostComment } from './api.ts'
 import { fmtTime, useLive } from './lib.tsx'
-import { Avatar, CommentIcon, Header, attempt, confirmAction, showToast } from './ui.tsx'
+import { Avatar, CommentIcon, Header, HandleName, attempt, confirmAction, showToast } from './ui.tsx'
 
 const MAX_BODY = 500
 
@@ -139,7 +139,7 @@ export function Global() {
           <div className="body">
             <div className="head">
               <a href={`#/t/${p.handle}`}>
-                <strong>{p.handle}</strong>
+                <HandleName handle={p.handle} verified={p.verified} />
               </a>
               <span className="muted small">· {fmtTime(p.createdAt)}</span>
             </div>
@@ -184,7 +184,7 @@ export function PostDetail({ id }: { id: string }) {
             <Avatar handle={d.post.handle} v={d.post.avatarV} />
           </a>
           <a href={`#/t/${d.post.handle}`} className="grow">
-            <strong>{d.post.handle}</strong>
+            <HandleName handle={d.post.handle} verified={d.post.verified} />
           </a>
         </div>
         <div className="post-text lead" style={{ marginTop: 10 }}>
@@ -226,7 +226,7 @@ export function PostDetail({ id }: { id: string }) {
           <div className="body">
             <div className="head">
               <a href={`#/t/${c.handle}`}>
-                <strong>{c.handle}</strong>
+                <HandleName handle={c.handle} verified={c.verified} />
               </a>
               <span className="muted small">· {fmtTime(c.createdAt)}</span>
             </div>

@@ -1076,3 +1076,10 @@ button.danger-solid {
     background: var(--down);
   }
 }
+
+.handle-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}

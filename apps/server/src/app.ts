@@ -1036,9 +1036,14 @@ export function buildApp(db: DatabaseSync, opts: AppOptions = {}) {
     if (!/^[a-z0-9_]{1,20}$/.test(q)) return { results: [] }
     const viewer = authUser(req)
     const rows = db
-      .prepare(`SELECT handle, avatar_ms FROM users WHERE handle_lc LIKE ? || '%' AND ${notBlocked(viewer?.id, 'users.id')} ORDER BY handle_lc LIMIT 10`)
+      .prepare(
+        `SELECT handle, avatar_ms, EXISTS (SELECT 1 FROM accounts a WHERE a.user_id = users.id) AS verified FROM users
+         WHERE handle_lc LIKE ? || '%' AND ${notBlocked(viewer?.id, 'users.id')} ORDER BY handle_lc LIMIT 10`,
+      )
       .all(q) as Row[]
-    return { results: rows.map((r) => ({ handle: r.handle as string, avatarV: (r.avatar_ms as number | null) ?? null })) }
+    return {
+      results: rows.map((r) => ({ handle: r.handle as string, avatarV: (r.avatar_ms as number | null) ?? null, verified: !!r.verified })),
+    }
   })
 
   // ---------- followed traders who hold a stock (登入後，只看追蹤對象) ----------

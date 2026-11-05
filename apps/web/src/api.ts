@@ -35,6 +35,7 @@ export interface Post {
   id: number
   handle: string
   avatarV?: number | null
+  verified?: boolean
   body: string
   createdAt: string
   commentCount: number
@@ -44,6 +45,7 @@ export interface PostComment {
   id: number
   handle: string
   avatarV?: number | null
+  verified?: boolean
   body: string
   createdAt: string
   mine: boolean

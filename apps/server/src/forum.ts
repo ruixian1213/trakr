@@ -45,12 +45,15 @@ export function registerForum(app: FastifyInstance, db: DatabaseSync, { authUser
     body: r.body,
     createdAt: new Date(r.created_ms).toISOString(),
     commentCount: r.comment_count ?? 0,
+    /** Broker-verified (Level 2) author: the blue check. */
+    verified: !!r.verified,
     mine: viewerId !== undefined && r.user_id === viewerId,
   })
 
   const postSql = `
     SELECT p.id, p.user_id, p.body, p.created_ms, u.handle, u.avatar_ms,
-      (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND ${COMMENT_OK}) AS comment_count
+      (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND ${COMMENT_OK}) AS comment_count,
+      EXISTS (SELECT 1 FROM accounts a WHERE a.user_id = p.user_id) AS verified
     FROM posts p JOIN users u ON u.id = p.user_id`
 
   const getPost = (id: number, viewerId?: number) =>
@@ -85,7 +88,9 @@ export function registerForum(app: FastifyInstance, db: DatabaseSync, { authUser
     if (!post) return reply.code(404).send({ error: 'not found' })
     const comments = db
       .prepare(
-        `SELECT c.id, c.user_id, c.body, c.created_ms, u.handle, u.avatar_ms FROM comments c JOIN users u ON u.id = c.user_id
+        `SELECT c.id, c.user_id, c.body, c.created_ms, u.handle, u.avatar_ms,
+           EXISTS (SELECT 1 FROM accounts a WHERE a.user_id = c.user_id) AS verified
+         FROM comments c JOIN users u ON u.id = c.user_id
          WHERE c.post_id = ? AND ${COMMENT_OK} AND ${notBlocked(viewer?.id, 'c.user_id')} ORDER BY c.id`,
       )
       .all(id) as Row[]
@@ -95,6 +100,7 @@ export function registerForum(app: FastifyInstance, db: DatabaseSync, { authUser
         id: c.id,
         handle: c.handle,
         avatarV: c.avatar_ms ?? null,
+        verified: !!c.verified,
         body: c.body,
         createdAt: new Date(c.created_ms).toISOString(),
         mine: viewer?.id === c.user_id,

@@ -20,7 +20,7 @@ import { MarketTab, StockPage, WatchlistTab } from './Market.tsx'
 import { ProfileBio, ProfileEditor, ProfileHeader, ReportProfile } from './Profile.tsx'
 import { REASONS, Spark, fmtTime, money, pct, tone, useLive, useRoute } from './lib.tsx'
 import { getTextSize, getTheme, setTextSize, setTheme, type TextSize, type Theme } from './typography.ts'
-import { Avatar, DialogHost, Header, LevelMark, StockLabel, UnderlineTabs, VerifiedBadge, attempt, confirmAction, showToast } from './ui.tsx'
+import { Avatar, DialogHost, Header, HandleName, LevelMark, StockLabel, UnderlineTabs, VerifiedBadge, attempt, confirmAction, showToast } from './ui.tsx'
 
 // ---------- shared rows ----------
 
@@ -59,7 +59,7 @@ function TradeRows({ items, hideHandle }: { items: TradeItem[]; hideHandle?: boo
               {!t.verified && <span className="tag">自行回報</span>}
             </div>
             <div className="muted small">
-              {!hideHandle && `${t.handle} · `}
+              {!hideHandle && <><HandleName handle={t.handle} verified={t.verified} /> · </>}
               {fmtTime(t.executedAt)}
             </div>
           </div>
@@ -308,7 +308,7 @@ type HomeTab = 'following' | 'market' | 'watch' | 'top'
 /** Find a trader by ID and open their record. Only IDs are searched. */
 function TraderSearch() {
   const [q, setQ] = useState('')
-  const [results, setResults] = useState<{ handle: string; avatarV?: number | null }[]>([])
+  const [results, setResults] = useState<{ handle: string; avatarV?: number | null; verified?: boolean }[]>([])
 
   useEffect(() => {
     const needle = q.trim()
@@ -317,7 +317,7 @@ function TraderSearch() {
       return
     }
     const id = setTimeout(() => {
-      api<{ results: { handle: string; avatarV?: number | null }[] }>(`/traders/search?q=${encodeURIComponent(needle)}`).then(
+      api<{ results: { handle: string; avatarV?: number | null; verified?: boolean }[] }>(`/traders/search?q=${encodeURIComponent(needle)}`).then(
         (r) => setResults(r.results),
         () => setResults([]),
       )
@@ -332,7 +332,7 @@ function TraderSearch() {
         <a key={r.handle} href={`#/t/${r.handle}`} className="row between" style={{ padding: '10px 0', borderBottom: '1px solid var(--line)', color: 'inherit', textDecoration: 'none' }}>
           <span className="row" style={{ gap: 10, alignItems: 'center' }}>
             <Avatar handle={r.handle} size={32} v={r.avatarV} />
-            <strong className="num">{r.handle}</strong>
+            <HandleName handle={r.handle} verified={r.verified} mono />
           </span>
           <span className="muted small">查看紀錄 ›</span>
         </a>
@@ -935,7 +935,7 @@ function MePage() {
       <div className="section">驗證等級</div>
       <div className="pad" style={{ paddingTop: 0 }}>
         <div className="row" style={{ alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
-          <VerifiedBadge />
+          {level === 2 && <VerifiedBadge />}
           <div className="small">
             <strong>Level 2 · 券商驗證</strong>
             <div className="muted">透過券商 API 取得成交紀錄，可核對價格、數量與時間，才會列入實盤績效排行榜。</div>
