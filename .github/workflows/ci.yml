@@ -42,19 +42,3 @@ jobs:
       - run: python -m pip install pytest
       - run: python -m pytest -q
 
-  deploy:
-    name: Deploy to Railway
-    # Only pushes to main, and only after both test jobs pass.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [node, agent]
-    runs-on: ubuntu-latest
-    environment: production
-    concurrency:
-      group: deploy-production
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy the current commit
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: npx --yes @railway/cli@5.71.0 up --ci --service tot

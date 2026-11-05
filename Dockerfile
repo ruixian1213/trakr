@@ -1,5 +1,6 @@
 # Production image: builds the web app, then runs the API and serves the built web files from one process.
-# Data lives in /data, which the host must mount as a persistent volume.
+# Data lives in /data. The host must attach a persistent volume at /data (Railway: service Settings → Volumes).
+# No VOLUME instruction here: Railway rejects it and wants the volume attached on the platform side.
 FROM node:24-slim
 
 WORKDIR /app
@@ -20,7 +21,6 @@ COPY . .
 RUN npm run build:web \
  && mkdir -p /data
 
-VOLUME ["/data"]
 EXPOSE 3000
 
 CMD ["npm", "start", "-w", "@tot/server"]
