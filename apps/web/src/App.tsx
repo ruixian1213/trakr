@@ -78,6 +78,8 @@ function TradeRows({ items, hideHandle }: { items: TradeItem[]; hideHandle?: boo
 function Leaderboard() {
   const [sort, setSort] = useState<'return' | 'winrate'>('return')
   const { data, error } = useLive(() => api<{ entries: LeaderEntry[] }>(`/leaderboard?sort=${sort}`), [sort], 30_000)
+  // Table bars are scaled to the largest absolute return on the page, so the best trader fills the bar.
+  const best = Math.max(1e-9, ...(data?.entries ?? []).map((x) => Math.abs(x.totalReturn)))
   return (
     <>
       <Header title="排行榜" />
@@ -94,7 +96,40 @@ function Leaderboard() {
       </div>
       {error && <div className="notice warn">{error}</div>}
       {data?.entries.length === 0 && <div className="empty">還沒有符合資格的交易員。需通過券商 API 驗證並累積足夠交易紀錄。</div>}
-      {data?.entries.map((e) => <TraderRow key={e.handle} e={e} metric={sort} />)}
+      {/* Phones: the list. Desktop: a table with a bar per trader, scaled to the best return on the page. */}
+      <div className="lb-mobile">{data?.entries.map((e) => <TraderRow key={e.handle} e={e} metric={sort} />)}</div>
+      {data && data.entries.length > 0 && (
+        <div className="lb-table" role="table" aria-label="交易員排行榜">
+          <div className="lb-row lb-head" role="row">
+            <span role="columnheader">#</span>
+            <span role="columnheader">交易員</span>
+            <span role="columnheader">總報酬（時間加權）</span>
+            <span role="columnheader">勝率</span>
+            <span role="columnheader">平倉</span>
+          </div>
+          {data.entries.map((e) => {
+            const width = (Math.abs(e.totalReturn) / best) * 100
+            return (
+              <a key={e.handle} href={`#/t/${e.handle}`} className="lb-row" role="row">
+                <span className="lb-rank num" role="cell">{String(e.rank).padStart(2, '0')}</span>
+                <span className="lb-who" role="cell">
+                  <Avatar handle={e.handle} size={32} v={e.avatarV} />
+                  <strong>{e.handle}</strong>
+                  <VerifiedBadge />
+                </span>
+                <span className="lb-ret" role="cell">
+                  <span className={`num lb-ret-val ${tone(e.totalReturn)}`}>{pct(e.totalReturn)}</span>
+                  <span className="lb-track" aria-hidden="true">
+                    <span className={`lb-fill ${tone(e.totalReturn)}`} style={{ width: `${width}%` }} />
+                  </span>
+                </span>
+                <span className="num" role="cell">{(e.winRate * 100).toFixed(0)}%</span>
+                <span className="num" role="cell">{e.closedTrades}</span>
+              </a>
+            )
+          })}
+        </div>
+      )}
     </>
   )
 }
