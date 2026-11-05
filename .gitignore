@@ -1,0 +1,13 @@
+node_modules
+data
+dist
+__pycache__
+*.pyc
+.env
+agent/.tot_state.json
+
+# iOS build output (regenerate with cap sync)
+apps/web/ios/App/Pods/
+apps/web/ios/App/build/
+apps/web/ios/App/App/public/
+apps/web/ios/App/CapApp-SPM/.build/

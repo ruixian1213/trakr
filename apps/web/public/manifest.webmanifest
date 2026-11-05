@@ -1,0 +1,10 @@
+{
+  "name": "Trakr",
+  "short_name": "Trakr",
+  "description": "trader or tracker",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1d1b1e",
+  "theme_color": "#1d1b1e",
+  "lang": "zh-Hant"
+}

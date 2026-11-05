@@ -1,0 +1,935 @@
+/*
+ * Typography
+ * - Body 16px (iOS Dynamic Type default is 17px). Chinese glyphs are dense; 15px and below tires the eye.
+ * - Everything is in rem, so one root size scales the whole UI: the user's text-size setting and iOS Dynamic Type.
+ * - Scale: 12 (tags only) / 14 (meta) / 16 (body) / 18 (lead) / 20 (titles) / 24 (key numbers).
+ * - Weights 400 / 600 / 700. Chinese fonts have no true 800, and heavy strokes blur at small sizes.
+ * - Reading text gets looser leading (1.7) and a touch of tracking; UI text stays at 1.45.
+ */
+
+:root {
+  color-scheme: dark;
+  --base-px: 16; /* overwritten from iOS Dynamic Type by typography.ts when available */
+  --text-scale: 1; /* the in-app text size setting */
+
+  /*
+   * Dark: a soft, slightly warm charcoal instead of pure black, with a warm off-white for text. Pure black
+   * with near-white text is the harshest pairing for long reading (glare, "halation"); this keeps body text
+   * at 12.3:1, still far above the 4.5:1 minimum, with less glare. Every pairing below was calculated
+   * (text on page, on a pressed row and in code blocks; controls and the tab underline at 3:1 or more).
+   */
+  --bg: #1d1b1e;
+  --text: #dedad6; /* 12.3:1 on --bg */
+  --muted: #a8a29e; /* 6.8:1 on --bg, 5.8:1 on a pressed row */
+  --line: #35323a; /* dividers: decorative */
+  --field-line: #7c767c; /* control outlines: 3.9:1, WCAG non-text contrast */
+  --press: rgba(255, 240, 235, 0.06);
+  --accent: #66b2f5; /* text and links: 7.5:1 */
+  --accent-solid: #3f9cea; /* badge fill and tab underline: 5.8:1 */
+  /* Taiwan convention: red is up, green is down. */
+  --up: #ff7f84;
+  --down: #43d19a;
+  --warn: #f2c94c;
+  --bar-bg: rgba(29, 27, 30, 0.82);
+  --code-bg: #262329;
+  --primary-bg: #e8e3de;
+  --primary-fg: #1d1b1e;
+  --danger-bg: #ff7f84; /* dark label on it: 7.0:1 */
+  --danger-fg: #1d1b1e;
+
+  --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'PingFang TC', 'Noto Sans TC', 'Noto Sans CJK TC', 'Microsoft JhengHei', 'Heiti TC', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-base: 1rem;
+  --fs-lead: 1.125rem;
+  --fs-title: 1.25rem;
+  --fs-num: 1.5rem;
+
+  --lh-ui: 1.45;
+  --lh-read: 1.7;
+
+  --tabbar-h: 50px;
+  --topbar-h: 53px;
+}
+
+/* Light theme: follows the system unless the user picked one. Listed twice because a media query
+   and an attribute selector cannot share a rule.
+   The page is a very pale warm white, close to ivory with a faint pink-grey cast (#f8f4f1), and text is a
+   warm near-black rather than pure black. Pure #fff is the brightest thing on a phone and tires the eyes in
+   a dim room; this keeps body text at 14.5:1 with far less glare. All pairings were calculated. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    color-scheme: light;
+    --bg: #f8f4f1;
+    --text: #26211f;
+    --muted: #6b615e;
+    --line: #e4dad6;
+    --field-line: #8c807d;
+    --press: rgba(90, 50, 50, 0.06);
+    --accent: #1560ab;
+    --accent-solid: #1d7fd0;
+    --up: #c2232d;
+    --down: #0a7449;
+    --warn: #7f5b08;
+    --bar-bg: rgba(248, 244, 241, 0.86);
+    --code-bg: #efe7e3;
+    --primary-bg: #2b2523;
+    --primary-fg: #f8f4f1;
+    --danger-bg: #c2232d;
+    --danger-fg: #fff8f6;
+  }
+}
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f8f4f1;
+  --text: #26211f;
+  --muted: #6b615e;
+  --line: #e4dad6;
+  --field-line: #8c807d;
+  --press: rgba(90, 50, 50, 0.06);
+  --accent: #1560ab;
+  --accent-solid: #1d7fd0;
+  --up: #c2232d;
+  --down: #0a7449;
+  --warn: #7f5b08;
+  --bar-bg: rgba(248, 244, 241, 0.86);
+  --code-bg: #efe7e3;
+  --primary-bg: #2b2523;
+  --primary-fg: #f8f4f1;
+  --danger-bg: #c2232d;
+  --danger-fg: #fff8f6;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  /* iOS Safari inflates text after rotation unless told not to. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  font-size: calc(var(--base-px) * var(--text-scale) * 1px);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: var(--fs-base);
+  line-height: var(--lh-ui);
+  letter-spacing: 0.01em;
+  /* Latin and CJK come from different fonts; this inserts the small gap between 台積電 and 2330. */
+  text-autospace: normal;
+  font-synthesis: none;
+  /* 100vh includes the collapsing URL bar on iOS; dvh does not. Older Safari ignores the second line. */
+  min-height: 100vh;
+  min-height: 100dvh;
+  overscroll-behavior-y: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  max-width: 600px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 0 env(safe-area-inset-right) calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 24px) env(safe-area-inset-left);
+}
+@media (min-width: 640px) {
+  #root {
+    border-left: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+  }
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+h1,
+h2,
+h3 {
+  margin: 0;
+}
+
+/* Digits line up in columns and do not jiggle as live values change. */
+.num {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.up {
+  color: var(--up);
+}
+.down {
+  color: var(--down);
+}
+.muted {
+  color: var(--muted);
+}
+.small {
+  font-size: var(--fs-sm);
+}
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.between {
+  justify-content: space-between;
+}
+.pad {
+  padding: 12px 16px;
+}
+.empty {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--muted);
+  line-height: var(--lh-read);
+}
+
+/* ---------- top bar ---------- */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: calc(var(--topbar-h) + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) 16px 0;
+  background: var(--bar-bg);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar h1 {
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-left: -8px;
+  border-radius: 50%;
+  color: var(--text);
+}
+.iconbtn:active {
+  background: var(--press);
+}
+.iconbtn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ---------- underline tabs (X / Threads feed switcher) ---------- */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+}
+.tabs button {
+  position: relative;
+  flex: 1;
+  min-height: 48px;
+  padding: 0 8px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: var(--fs-base);
+}
+.tabs button.on {
+  color: var(--text);
+  font-weight: 700;
+}
+.tabs button.on::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 56px;
+  height: 4px;
+  margin-left: -28px;
+  border-radius: 2px;
+  background: var(--accent-solid);
+}
+
+/* ---------- feed rows ---------- */
+.item {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+}
+a.item:active,
+.item.tap:active {
+  background: var(--press);
+}
+.item .body {
+  flex: 1;
+  min-width: 0;
+}
+.item .head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.item .head strong {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rank {
+  width: 1.5rem;
+  flex: none;
+  padding-top: 0.55rem;
+  text-align: center;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+.rank.top {
+  color: var(--warn);
+}
+
+.avatar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 700;
+}
+
+img.avatar.photo {
+  object-fit: cover;
+  background: var(--press);
+}
+
+.verified {
+  flex: none;
+  width: 1.05em;
+  height: 1.05em;
+  color: var(--accent-solid);
+}
+.tag {
+  flex: none;
+  padding: 0 0.5em;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  line-height: 1.55;
+  white-space: nowrap;
+}
+
+/* Reading text: more leading and tracking than UI text, and kinsoku line breaking for CJK punctuation. */
+.post-text {
+  display: block;
+  margin-top: 4px;
+  line-height: var(--lh-read);
+  letter-spacing: 0.02em;
+  line-break: strict;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.post-text.lead {
+  font-size: var(--fs-lead);
+}
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.actions .stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.actions svg {
+  width: 1.2em;
+  height: 1.2em;
+}
+
+.linkbtn {
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  font-weight: 400;
+  min-height: 36px;
+  padding: 4px 6px;
+  margin: 0 -6px;
+}
+
+/* ---------- account ID field with a fixed "@" ---------- */
+.id-field {
+  position: relative;
+}
+.id-field .at {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+.id-field input {
+  padding-left: 28px;
+}
+input[aria-invalid='true'] {
+  border-color: var(--up);
+}
+
+/* ---------- profile photo, bio, links ---------- */
+button.avatar-pick {
+  position: relative;
+  flex: none;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  line-height: 0;
+}
+button.avatar-pick:disabled {
+  opacity: 1; /* the busy label says what is happening; dimming the photo would look broken */
+}
+.avatar-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+  background: var(--primary-bg);
+  color: var(--primary-fg);
+}
+.avatar-badge svg {
+  width: 13px;
+  height: 13px;
+}
+.avatar-busy {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.62);
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  line-height: 1.2;
+}
+.social-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.social-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+.social-chip:active {
+  background: var(--press);
+}
+.link-row {
+  margin-bottom: 8px;
+}
+.link-row select {
+  flex: none;
+  width: 7.5rem;
+}
+.link-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- market ---------- */
+.index-card {
+  padding-top: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.index-value {
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+.chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-padding: 0 16px;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.chips::-webkit-scrollbar {
+  display: none;
+}
+.chip {
+  flex: 0 0 auto;
+  min-width: 8.5rem;
+  scroll-snap-align: start;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.quote-item {
+  align-items: center;
+}
+.quote-link {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.quote-link .rank {
+  padding-top: 0;
+}
+.quote-num {
+  text-align: right;
+}
+.quote-price {
+  font-size: var(--fs-lead);
+  font-weight: 700;
+  line-height: 1.3;
+}
+.attribution {
+  padding-top: 16px;
+  margin-top: 8px;
+  border-top: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.attribution a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.stats .value.sm {
+  font-size: var(--fs-lead);
+}
+
+/* ---------- trade rows ---------- */
+.stock-label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.stock-label strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stock-label .small {
+  flex: none;
+}
+.trade-side {
+  font-weight: 700;
+}
+
+/* ---------- profile ---------- */
+.profile {
+  padding: 16px;
+}
+.profile .big-name {
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.profile .row > button {
+  flex: none;
+  align-self: flex-start;
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.stats > div {
+  padding: 12px 16px;
+}
+.stats > div:nth-child(odd) {
+  border-right: 1px solid var(--line);
+}
+.stats > div:nth-child(n + 3) {
+  border-top: 1px solid var(--line);
+}
+.stats .label {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.stats .value {
+  font-size: var(--fs-num);
+  font-weight: 700;
+  line-height: 1.3;
+}
+.value-lg {
+  font-size: var(--fs-title);
+  font-weight: 700;
+}
+
+svg.spark {
+  width: 100%;
+  height: 90px;
+  display: block;
+}
+
+/* ---------- section headings ---------- */
+.section {
+  padding: 18px 16px 8px;
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: 1.3;
+  border-top: 1px solid var(--line);
+}
+.section.first {
+  border-top: 0;
+}
+.sub {
+  padding: 0 16px 8px;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+}
+
+/* ---------- controls ---------- */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+button {
+  appearance: none;
+  -webkit-appearance: none;
+  min-height: 36px;
+  min-height: max(36px, 2.25rem);
+  padding: 0 1rem;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: var(--fs-base);
+  font-weight: 600;
+  touch-action: manipulation;
+}
+button:disabled {
+  opacity: 0.5;
+}
+button.primary {
+  background: var(--primary-bg);
+  border-color: var(--primary-bg);
+  color: var(--primary-fg);
+}
+button.block {
+  width: 100%;
+  min-height: 44px;
+}
+button.danger {
+  color: var(--up);
+}
+
+/* The input rules below set display, which would otherwise beat the browser's own [hidden] rule. */
+[hidden] {
+  display: none !important;
+}
+
+/* iOS Safari zooms the page when an input under 16px gets focus. max() keeps it at 16px or more even
+   when the user shrinks the text size. */
+input,
+select,
+textarea {
+  font-size: max(16px, 1rem);
+  appearance: none;
+  -webkit-appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  background: transparent;
+  border: 1px solid var(--field-line);
+  border-radius: 8px;
+  outline: none;
+}
+/* Safari's default placeholder is lighter than AA allows. */
+::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+/* Keyboard users need to see where they are. Inputs already change border colour on focus. */
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent-solid);
+  outline-offset: 2px;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent-solid);
+}
+textarea {
+  resize: none;
+  line-height: var(--lh-read);
+}
+.bare {
+  border: 0;
+  padding: 4px 0;
+  min-height: 0;
+  background: transparent;
+}
+.field {
+  margin-bottom: 14px;
+}
+.field label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+
+.notice {
+  margin: 12px 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+}
+.notice.warn {
+  border-color: color-mix(in srgb, var(--warn) 40%, transparent);
+  color: var(--warn);
+}
+.notice a {
+  color: var(--accent);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0 0.5em;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.badge.ok {
+  color: var(--down);
+}
+.badge.warn {
+  color: var(--warn);
+}
+
+code,
+pre {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+pre {
+  margin: 8px 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--code-bg);
+  border-radius: 8px;
+  user-select: all;
+  -webkit-user-select: all;
+}
+
+/* ---------- segmented choice (appearance settings) ---------- */
+.choice {
+  display: flex;
+  border: 1px solid var(--field-line);
+  border-radius: 999px;
+  padding: 3px;
+}
+.choice button {
+  flex: 1;
+  min-height: 2.25rem;
+  padding: 0 0.5rem;
+  border: 0;
+  color: var(--muted);
+}
+.choice button.on {
+  background: var(--press);
+  color: var(--text);
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* ---------- in-app dialog and toast (replace window.confirm / alert) ---------- */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.55);
+}
+.dialog {
+  width: 100%;
+  max-width: 340px;
+  padding: 20px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+}
+.dialog h2 {
+  font-size: var(--fs-lead);
+  font-weight: 700;
+  line-height: 1.3;
+}
+.dialog p {
+  margin: 8px 0 20px;
+  line-height: var(--lh-read);
+  overflow-wrap: anywhere;
+}
+.dialog-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+.dialog-actions button {
+  min-height: 44px;
+  min-width: 5.5rem;
+}
+button.danger-solid {
+  background: var(--danger-bg);
+  border-color: var(--danger-bg);
+  color: var(--danger-fg);
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 16px);
+  z-index: 50;
+  max-width: min(90vw, 480px);
+  transform: translateX(-50%);
+  padding: 10px 16px;
+  background: var(--text);
+  color: var(--bg);
+  border-radius: 12px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* ---------- bottom tab bar: icons only, like X and Threads ---------- */
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  max-width: 600px;
+  margin: 0 auto;
+  height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: var(--bar-bg);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--line);
+}
+.tabbar a {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  touch-action: manipulation;
+}
+.tabbar a.on {
+  color: var(--text);
+}
+.tabbar svg {
+  width: 26px;
+  height: 26px;
+  transition: transform 0.1s;
+}
+.tabbar a:active svg {
+  transform: scale(0.88);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tabbar svg {
+    transition: none;
+  }
+}
+
+/* ---------- legal pages, footer, install guide ---------- */
+.legal-section {
+  padding-top: 8px;
+}
+.legal-title {
+  font-size: var(--fs-lead);
+  font-weight: 700;
+  margin: 12px 0 6px;
+}
+.legal-list {
+  margin: 0;
+  padding-left: 1.3em;
+  color: var(--text);
+  line-height: var(--lh-read);
+}
+.legal-list li {
+  margin-bottom: 8px;
+}
+.app-footer {
+  margin: 24px 16px calc(var(--tabbar-h) + 16px);
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-read);
+}
+.app-footer p {
+  margin: 0 0 6px;
+}

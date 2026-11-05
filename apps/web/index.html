@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- viewport-fit=cover lets us use the full screen on notched iPhones; CSS adds the safe-area padding back. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark light" />
+    <!-- typography.ts keeps this in sync with the active theme. -->
+    <meta name="theme-color" content="#1d1b1e" />
+    <!-- Stop Safari turning stock codes and prices into phone-number links. -->
+    <meta name="format-detection" content="telephone=no" />
+    <!-- "Add to Home Screen" on iOS runs this as a standalone app. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Trakr" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <title>Trakr</title>
+    <meta name="description" content="trader or tracker" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

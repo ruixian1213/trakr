@@ -1,0 +1,19 @@
+{
+  "name": "tot",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "test": "npm test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "dev:server": "npm run dev -w @tot/server",
+    "dev:web": "npm run dev -w @tot/web",
+    "seed": "npm run seed -w @tot/server",
+    "build:web": "npm run build -w @tot/web"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

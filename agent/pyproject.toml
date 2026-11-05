@@ -1,0 +1,19 @@
+[project]
+name = "tot-agent"
+version = "0.1.0"
+description = "Read-only broker sync agent for Trakr. Runs on the trader's own machine."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+shioaji = ["shioaji"]
+dev = ["pytest"]
+
+[project.scripts]
+tot-agent = "tot_agent.main:main"
+
+[tool.setuptools.packages.find]
+include = ["tot_agent*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
