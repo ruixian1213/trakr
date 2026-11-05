@@ -218,6 +218,9 @@ function setUp(db: DatabaseSync): DatabaseSync {
   const userCols = db.prepare("SELECT name FROM pragma_table_info('users')").all() as Row[]
   if (!userCols.some((c) => c.name === 'avatar_ms')) db.exec('ALTER TABLE users ADD COLUMN avatar_ms INTEGER')
   if (!userCols.some((c) => c.name === 'bio')) db.exec("ALTER TABLE users ADD COLUMN bio TEXT NOT NULL DEFAULT ''")
+  // Email digest: off until the user opts in. digest_sent_ms is when the last digest went out (0 = never).
+  if (!userCols.some((c) => c.name === 'email_digest')) db.exec('ALTER TABLE users ADD COLUMN email_digest INTEGER NOT NULL DEFAULT 0')
+  if (!userCols.some((c) => c.name === 'digest_sent_ms')) db.exec('ALTER TABLE users ADD COLUMN digest_sent_ms INTEGER NOT NULL DEFAULT 0')
 
   // Case-insensitive unique IDs. Older databases get the column added and filled in, and if two
   // existing accounts differ only by case we stop and say so rather than guess which one keeps the ID.

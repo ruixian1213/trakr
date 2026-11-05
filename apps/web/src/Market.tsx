@@ -345,7 +345,7 @@ function StockInsight({ code }: { code: string }) {
         det.loaded && <div className="empty">近期沒有除權息預告。</div>
       )}
 
-      <div className="section">你追蹤的人</div>
+      <div className="section">你追蹤的人{followed.data && followed.data.holders.length > 0 ? `（${followed.data.holders.length} 位持有這檔股票）` : ''}</div>
       {signedOut ? (
         <div className="notice">
           <a href="#/me">登入</a>後，可以看到你追蹤的交易員是否持有這檔股票。

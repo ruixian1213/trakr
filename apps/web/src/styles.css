@@ -1083,3 +1083,24 @@ button.danger-solid {
   gap: 4px;
   min-width: 0;
 }
+
+/* ---------- compare two traders (every width) ---------- */
+.cmp-table {
+  margin: 8px 0 24px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.cmp-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+}
+.cmp-head {
+  border-top: 0;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}

@@ -243,6 +243,7 @@ export interface NotificationResult {
 }
 
 export interface Me {
+  emailDigest?: boolean
   handle: string
   avatarV?: number | null
   bio?: string

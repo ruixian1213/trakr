@@ -14,6 +14,7 @@ import {
   type TraderDetail,
 } from './api.ts'
 import { Footer, InstallPage, LegalPage, TraderNotice } from './legal.tsx'
+import { ComparePage, VerifyGuide, copyTraderLink } from './Growth.tsx'
 import { Global, PostDetail } from './Forum.tsx'
 import { HandleField, type HandleStatus } from './HandleField.tsx'
 import { MarketTab, StockPage, WatchlistTab } from './Market.tsx'
@@ -93,6 +94,9 @@ function Leaderboard() {
       />
       <div className="sub" style={{ paddingTop: 10 }}>
         只列入券商驗證（Level 2）的實盤績效，報酬率為時間加權。
+      </div>
+      <div className="pad" style={{ paddingTop: 0 }}>
+        <a href="#/compare">比較兩位交易員 →</a>
       </div>
       {error && <div className="notice warn">{error}</div>}
       {data?.entries.length === 0 && <div className="empty">還沒有符合資格的交易員。需通過券商 API 驗證並累積足夠交易紀錄。</div>}
@@ -199,6 +203,7 @@ function Trader({ handle }: { handle: string }) {
           <button className={d.following ? '' : 'primary'} onClick={toggleFollow}>
             {d.following ? '已追蹤' : '追蹤'}
           </button>
+          <button onClick={() => copyTraderLink(handle)}>分享</button>
           <button onClick={toggleBlock}>{d.blocked ? '解除封鎖' : '封鎖'}</button>
         </div>
         {err && <div className="small up" style={{ marginTop: 8 }}>{err}</div>}
@@ -952,6 +957,9 @@ function MePage() {
           目前等級：<strong>{level === 2 ? 'Level 2 · 券商驗證' : level === 1 ? 'Level 1 · 自行上傳' : '尚未分享交易'}</strong>
           {m.lastSyncAt && <span className="muted"> · 最後同步 {fmtTime(m.lastSyncAt)}</span>}
         </div>
+        <p className="small" style={{ marginTop: 10 }}>
+          <a href="#/verify">如何成為藍勾交易員 →</a>
+        </p>
       </div>
     </>
   )
@@ -963,7 +971,7 @@ function SettingsPage() {
   const m = me.data
   const profile = useLive(() => (m ? api<TraderDetail>(`/traders/${m.handle}`) : Promise.resolve(null)), [m?.handle], 20_000)
 
-  const save = async (patch: { delaySec?: number; holdingsVisibility?: string }) => {
+  const save = async (patch: { delaySec?: number; holdingsVisibility?: string; emailDigest?: boolean }) => {
     if (await attempt(() => api('/me/settings', { method: 'PUT', body: patch }))) {
       showToast('設定已更新')
       me.reload()
@@ -993,6 +1001,9 @@ set SHIOAJI_SECRET_KEY=...
 set TOT_AGENT_KEY=<下方建立的同步金鑰>
 python -m tot_agent --broker shioaji --server ${location.origin}`}</pre>
       </div>
+      <p className="pad small" style={{ paddingTop: 0 }}>
+        <a href="#/verify">如何成為藍勾交易員 →</a>
+      </p>
       <AgentKeys />
 
       <div className="section">Level 1：匯入 CSV</div>
@@ -1034,6 +1045,15 @@ python -m tot_agent --broker shioaji --server ${location.origin}`}</pre>
         <button onClick={logout}>登出</button>
       </div>
       <DeleteAccount onDeleted={me.reload} />
+
+      <div className="section">交易摘要信件</div>
+      <div className="pad" style={{ paddingTop: 0 }}>
+        <label className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
+          <input type="checkbox" checked={!!m.emailDigest} onChange={(e) => save({ emailDigest: e.target.checked })} />
+          <span>每天寄一封 Email，列出你追蹤的交易員已公開的新成交</span>
+        </label>
+        <div className="muted small" style={{ marginTop: 8 }}>信中只列出成交紀錄，不含任何投資建議。信件底部可以隨時取消訂閱。</div>
+      </div>
 
       <div className="section">條款與說明</div>
       <div className="pad" style={{ paddingTop: 0 }}>
@@ -1092,7 +1112,7 @@ const TABS: { id: Tab; href: string; label: string }[] = [
 ]
 
 export function App() {
-  const [page, a] = useRoute()
+  const [page, a, b] = useRoute()
 
   let tab: Tab
   let view: React.ReactNode
@@ -1108,6 +1128,12 @@ export function App() {
   } else if (page === 'settings') {
     tab = 'me'
     view = <SettingsPage />
+  } else if (page === 'verify') {
+    tab = 'me'
+    view = <VerifyGuide />
+  } else if (page === 'compare') {
+    tab = 'leaderboard'
+    view = <ComparePage a={a} b={b} />
   } else if (page === 'legal') {
     tab = 'me'
     view = <LegalPage />

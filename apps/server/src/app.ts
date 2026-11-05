@@ -43,6 +43,7 @@ import { createMarket, twseFetcher, type Fetcher } from './market.ts'
 import { TDCC_URL, archiveHolders } from './holders.ts'
 import { registerMarketRoutes } from './market-routes.ts'
 import { DUMMY_HASH, Limiter, PASSWORD_MAX, PASSWORD_MIN, hashPassword, parseCookies, verifyPassword } from './auth.ts'
+import { digestMessage, unsubscribeToken, unsubscribeTokenValid, type DigestTrade, type Mailer } from "./digest.ts"
 
 export interface AppOptions {
   /** Mark the session cookie Secure. Turn on whenever the site is served over HTTPS. */
@@ -63,6 +64,10 @@ export interface AppOptions {
   gapThresholdMs?: number
   /** A gap newer than this keeps the trader off the leaderboard. */
   gapPenaltyMs?: number
+  /** Public base URL for share links, sitemap and unsubscribe links. Defaults to the request host. */
+  publicUrl?: string
+  /** Email digest. Off unless both a secret and a mailer are given. */
+  digest?: { secret: string; mailer: Mailer }
 }
 
 const VISIBILITIES: HoldingsVisibility[] = ['public', 'ratio', 'hidden']
@@ -231,6 +236,7 @@ export function buildApp(db: DatabaseSync, opts: AppOptions = {}) {
     email: u.email,
     delaySec: u.delay_sec,
     holdingsVisibility: u.holdings_visibility,
+    emailDigest: !!u.email_digest,
     linked: !!db.prepare('SELECT 1 FROM accounts WHERE user_id = ?').get(u.id),
     lastSyncAt: u.last_sync_ms ? new Date(u.last_sync_ms).toISOString() : null,
   })
@@ -706,12 +712,17 @@ export function buildApp(db: DatabaseSync, opts: AppOptions = {}) {
       if (typeof b.delaySec !== 'number') return reply.code(400).send({ error: 'delaySec must be a number' })
       delay = clampDelay(b.delaySec)
     }
+    let digest = u.email_digest as number
+    if (b.emailDigest !== undefined) {
+      if (typeof b.emailDigest !== "boolean") return reply.code(400).send({ error: "emailDigest must be true or false" })
+      digest = b.emailDigest ? 1 : 0
+    }
     if (b.holdingsVisibility !== undefined) {
       if (!VISIBILITIES.includes(b.holdingsVisibility)) return reply.code(400).send({ error: 'bad holdingsVisibility' })
       vis = b.holdingsVisibility
     }
-    db.prepare('UPDATE users SET delay_sec = ?, holdings_visibility = ? WHERE id = ?').run(delay, vis, u.id)
-    return { delaySec: delay, holdingsVisibility: vis }
+    db.prepare("UPDATE users SET delay_sec = ?, holdings_visibility = ?, email_digest = ? WHERE id = ?").run(delay, vis, digest, u.id)
+    return { delaySec: delay, holdingsVisibility: vis, emailDigest: !!digest }
   })
 
   // ---------- ingest from the local agent ----------
@@ -1110,6 +1121,105 @@ export function buildApp(db: DatabaseSync, opts: AppOptions = {}) {
   registerAvatar(app, db, { authUser, now })
   registerMarketRoutes(app, db, { authUser, now, market, syncHolders })
 
+  // ---------- share pages, robots.txt and sitemap (for link previews and search engines) ----------
+
+  const baseUrl = (req: FastifyRequest) => (opts.publicUrl ?? `${req.protocol}://${req.headers.host ?? req.hostname}`).replace(/\/$/, '')
+  const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
+
+  // Crawlers do not run the app, so each public trader gets a real page with preview tags. People are sent on to the app.
+  app.get('/t/:handle', async (req, reply) => {
+    const u = q.userByHandle.get((req.params as Row).handle) as Row | undefined
+    if (!u) return reply.code(404).type('text/html; charset=utf-8').send('<!doctype html><title>找不到交易員</title><p>找不到這位交易員。</p>')
+    const s = traderSummary(u)
+    const verified = s.level === 2
+    const ret = `${s.totalReturn > 0 ? '+' : ''}${(s.totalReturn * 100).toFixed(1)}%`
+    const desc = verified
+      ? `券商驗證的實盤績效，時間加權報酬 ${ret}，勝率 ${(s.winRate * 100).toFixed(0)}%。交易紀錄延遲公開，僅供追蹤，不構成投資建議。`
+      : '在 Trakr 追蹤這位交易員的交易紀錄。僅供追蹤，不構成投資建議。'
+    const title = `${u.handle} · Trakr`
+    const url = `${baseUrl(req)}/t/${u.handle}`
+    const page = `<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(desc)}" />
+<link rel="canonical" href="${esc(url)}" />
+<meta property="og:type" content="profile" />
+<meta property="og:title" content="${esc(title)}" />
+<meta property="og:description" content="${esc(desc)}" />
+<meta property="og:url" content="${esc(url)}" />
+<meta property="og:site_name" content="Trakr" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="${esc(title)}" />
+<meta name="twitter:description" content="${esc(desc)}" />
+<meta http-equiv="refresh" content="0; url=/#/t/${esc(u.handle)}" />
+</head><body>
+<p>${esc(u.handle)}${verified ? '（券商驗證）' : ''}</p>
+<p>${esc(desc)}</p>
+<p><a href="/#/t/${esc(u.handle)}">在 Trakr 查看</a></p>
+</body></html>`
+    return reply.type('text/html; charset=utf-8').header('cache-control', 'public, max-age=300').send(page)
+  })
+
+  app.get('/robots.txt', async (req, reply) =>
+    reply.type('text/plain; charset=utf-8').send(`User-agent: *\nAllow: /\nSitemap: ${baseUrl(req)}/sitemap.xml\n`),
+  )
+
+  // Only traders who are on the leaderboard are listed; anyone else would be a thin page.
+  app.get('/sitemap.xml', async (req, reply) => {
+    const base = baseUrl(req)
+    const users = db.prepare('SELECT * FROM users').all() as Row[]
+    const urls = users.filter((u) => traderSummary(u).eligible).map((u) => `  <url><loc>${esc(`${base}/t/${u.handle}`)}</loc></url>`)
+    return reply
+      .type('application/xml; charset=utf-8')
+      .send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`)
+  })
+
+  // ---------- email digest (opt-in) ----------
+  // Tests and the hourly timer call this; it does nothing unless a digest secret and mailer are configured.
+  app.decorate("runDigest", runDigest)
+
+  app.get('/api/digest/unsubscribe', async (req, reply) => {
+    if (!opts.digest) return reply.code(404).send({ error: 'not found' })
+    const q2 = req.query as Row
+    const id = Number(q2.u)
+    const token = typeof q2.t === 'string' ? q2.t : ''
+    if (!Number.isInteger(id) || !unsubscribeTokenValid(id, token, opts.digest.secret)) {
+      return reply.code(400).type('text/html; charset=utf-8').send('<!doctype html><p>連結無效。</p>')
+    }
+    db.prepare('UPDATE users SET email_digest = 0 WHERE id = ?').run(id)
+    return reply.type('text/html; charset=utf-8').send('<!doctype html><meta charset="utf-8"><p>已取消訂閱交易摘要信件。</p>')
+  })
+
+  /** Sends one digest per opted-in user for trades that became visible since their last digest. Failures are retried next time. */
+  async function runDigest() {
+    if (!opts.digest) return
+    const { secret, mailer } = opts.digest
+    const base = (opts.publicUrl ?? '').replace(/\/$/, '')
+    const users = db.prepare('SELECT * FROM users WHERE email_digest = 1').all() as Row[]
+    for (const u of users) {
+      // First digest looks back one day; after that, only what is new since the last one.
+      const since = (u.digest_sent_ms as number) || now() - 24 * 3_600_000
+      const followed = db
+        .prepare(`SELECT u2.* FROM follows f JOIN users u2 ON u2.id = f.followee_id WHERE f.follower_id = ? AND ${notBlocked(u.id as number, 'u2.id')}`)
+        .all(u.id) as Row[]
+      const fresh: DigestTrade[] = followed
+        .flatMap((t) => visibleTrades(t, u, 50).filter((x) => Date.parse(x.executedAt) > since))
+        .map((x) => ({ handle: x.handle as string, symbol: x.symbol as string, side: x.side as 'buy' | 'sell', qty: x.qty as number, price: x.price as number, executedAt: x.executedAt as string }))
+        .sort((a, b) => b.executedAt.localeCompare(a.executedAt))
+        .slice(0, 50)
+      if (fresh.length === 0) continue
+      const link = `${base}/api/digest/unsubscribe?u=${u.id}&t=${unsubscribeToken(u.id as number, secret)}`
+      const msg = digestMessage(fresh, link)
+      try {
+        await mailer.send(u.email as string, msg.subject, msg.text)
+        db.prepare('UPDATE users SET digest_sent_ms = ? WHERE id = ?').run(now(), u.id)
+      } catch {
+        // Leave digest_sent_ms alone so the same trades are tried again on the next run.
+      }
+    }
+  }
+
   if (opts.autoSync) {
     // The ex-dividend list only shows a few weeks ahead. If nobody browses for a while, an announcement can pass
     // unarchived, so the archives are refreshed on a timer and not only when a page asks.
@@ -1119,6 +1229,7 @@ export function buildApp(db: DatabaseSync, opts: AppOptions = {}) {
     }
     tick()
     setInterval(tick, 6 * 3_600_000).unref()
+    setInterval(() => void runDigest(), 3_600_000).unref()
   }
 
   return app

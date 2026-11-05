@@ -4,14 +4,24 @@ import { fileURLToPath } from 'node:url'
 import fastifyStatic from '@fastify/static'
 import { buildApp } from './app.ts'
 import { openDb } from './db.ts'
+import { resendMailer } from './digest.ts'
 
 const dbPath = process.env.TOT_DB ?? './data/tot.db'
 mkdirSync(dirname(dbPath), { recursive: true })
+
+// The email digest is off unless all three are set: a secret for unsubscribe links, a Resend API key, and a sender address.
+const { TOT_DIGEST_SECRET, TOT_RESEND_API_KEY, TOT_MAIL_FROM } = process.env
+const digest =
+  TOT_DIGEST_SECRET && TOT_RESEND_API_KEY && TOT_MAIL_FROM
+    ? { secret: TOT_DIGEST_SECRET, mailer: resendMailer(TOT_RESEND_API_KEY, TOT_MAIL_FROM) }
+    : undefined
 
 const app = buildApp(openDb(dbPath), {
   secureCookies: process.env.NODE_ENV === 'production',
   trustProxy: process.env.TOT_TRUST_PROXY === '1',
   autoSync: true,
+  publicUrl: process.env.TOT_PUBLIC_URL,
+  digest,
 })
 
 // Serve the built web app from the same origin as the API, so the login cookie works without CORS.
