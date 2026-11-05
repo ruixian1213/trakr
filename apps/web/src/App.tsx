@@ -424,7 +424,7 @@ function AuthForm({ onDone }: { onDone: () => void }) {
     <>
       <Header title={mode === 'login' ? '登入' : '建立帳號'} />
       {/* A real <form> with autocomplete hints lets iCloud Keychain offer to save and fill the password. */}
-      <form className="pad" onSubmit={submit} style={{ paddingTop: 20 }}>
+      <form className="pad auth-form" onSubmit={submit} style={{ paddingTop: 20 }}>
         <div className="field">
           <label htmlFor="email">電子郵件</label>
           <input id="email" name="email" type="email" inputMode="email" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} required value={email} onChange={(e) => setEmail(e.target.value)} />

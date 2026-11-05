@@ -933,3 +933,67 @@ button.danger-solid {
 .app-footer p {
   margin: 0 0 6px;
 }
+
+/* ---------- desktop web: left sidebar + centered column ----------
+   Phones keep the bottom icon bar. From 1000px wide, the bar becomes a labelled sidebar and the
+   page reads like a website instead of a stretched phone screen. */
+@media (min-width: 1000px) {
+  #root {
+    max-width: 960px;
+    /* room for the sidebar, which sits just left of the content column */
+    padding: 0 0 48px 220px;
+    border-left: 0;
+    border-right: 0;
+  }
+  .topbar {
+    box-shadow: none;
+    border-bottom: 1px solid var(--line);
+  }
+  .tabbar {
+    top: 0;
+    bottom: auto;
+    left: max(16px, calc(50% - 480px));
+    right: auto;
+    width: 200px;
+    max-width: none;
+    margin: 0;
+    height: auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 20px 12px;
+    background: var(--bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-top: 0;
+    border-right: 1px solid var(--line);
+  }
+  .tabbar a {
+    flex: none;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: var(--fs-base);
+  }
+  .tabbar a::after {
+    content: attr(aria-label);
+  }
+  .tabbar a:hover {
+    background: var(--press);
+  }
+  .tabbar a.on {
+    font-weight: 700;
+  }
+  .app-footer {
+    margin-bottom: 0;
+  }
+  /* Sign-in and sign-up: a card in the middle of the column, not a full-width form. */
+  .auth-form {
+    max-width: 420px;
+    margin: 32px auto 0;
+    padding: 24px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+  }
+}
