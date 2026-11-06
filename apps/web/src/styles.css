@@ -1104,3 +1104,143 @@ button.danger-solid {
   color: var(--muted);
   font-size: var(--fs-sm);
 }
+
+/* ---------- leaderboard page layout (reference-style: hero, numbered sections, cards) ---------- */
+.rk-hero {
+  padding: 28px 16px 8px;
+}
+.rk-eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.14em;
+  color: var(--accent);
+}
+.rk-title {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 6px 0 8px;
+}
+.rk-sub {
+  color: var(--muted);
+  line-height: var(--lh-read);
+  max-width: 560px;
+  margin: 0 0 14px;
+}
+.rk-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.rk-live {
+  font-size: var(--fs-sm);
+  color: var(--down);
+}
+.rk-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+}
+.rk-tab {
+  background: none;
+  border: 0;
+  padding: 10px 14px;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+  box-shadow: inset 0 -2px 0 transparent;
+}
+.rk-tab.on {
+  color: var(--text);
+  font-weight: 700;
+  box-shadow: inset 0 -2px 0 var(--accent-solid);
+}
+.rk-section {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 28px 16px 12px;
+}
+.rk-num {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--accent);
+}
+.rk-h {
+  font-size: var(--fs-lead);
+  font-weight: 700;
+}
+.rk-aside {
+  margin-left: auto;
+}
+.rk-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 16px;
+}
+.rk-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  min-width: 0;
+}
+.rk-card-k {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.rk-card-v {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 6px 0 4px;
+  min-height: 1.5em;
+}
+.rk-stack {
+  display: flex;
+  height: 14px;
+  margin: 0 16px;
+  border-radius: 7px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.rk-stack > span {
+  display: block;
+  height: 100%;
+}
+.rk-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 10px 16px 0;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+.rk-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.rk-search {
+  display: block;
+  margin: 0 16px 12px;
+  width: calc(100% - 32px);
+  max-width: 420px;
+}
+.rk-foot {
+  padding: 16px;
+}
+@media (max-width: 640px) {
+  .rk-title {
+    font-size: 1.6rem;
+  }
+  .rk-cards {
+    grid-template-columns: 1fr;
+  }
+}

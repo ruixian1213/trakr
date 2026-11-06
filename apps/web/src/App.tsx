@@ -76,63 +76,166 @@ function TradeRows({ items, hideHandle }: { items: TradeItem[]; hideHandle?: boo
 
 // ---------- pages ----------
 
+const RK_COLORS = ['var(--accent-solid)', '#9b8cff', '#e0a64a', '#43d19a', '#ff7f84', '#8f8a8e']
+
 function Leaderboard() {
   const [sort, setSort] = useState<'return' | 'winrate'>('return')
-  const { data, error } = useLive(() => api<{ entries: LeaderEntry[] }>(`/leaderboard?sort=${sort}`), [sort], 30_000)
-  // Table bars are scaled to the largest absolute return on the page, so the best trader fills the bar.
-  const best = Math.max(1e-9, ...(data?.entries ?? []).map((x) => Math.abs(x.totalReturn)))
+  const [q, setQ] = useState('')
+  const { data, error, loaded } = useLive(() => api<{ entries: LeaderEntry[] }>(`/leaderboard?sort=${sort}`), [sort], 30_000)
+  const entries = data?.entries ?? []
+  // Bars are scaled to the largest absolute return on the page, so the best trader fills the bar.
+  const best = Math.max(1e-9, ...entries.map((x) => Math.abs(x.totalReturn)))
+  const shown = entries.filter((e) => e.handle.toLowerCase().includes(q.trim().toLowerCase()))
+  const topReturn = entries.reduce<LeaderEntry | null>((a, e) => (!a || e.totalReturn > a.totalReturn ? e : a), null)
+  const topWinRate = entries.reduce<LeaderEntry | null>((a, e) => (!a || e.winRate > a.winRate ? e : a), null)
+  const totalClosed = entries.reduce((s, e) => s + e.closedTrades, 0)
+  // Share of closed trades: the top six on their own, the rest grouped. Only counts the server already returns.
+  const top6 = entries.slice(0, 6)
+  const restClosed = entries.slice(6).reduce((s, e) => s + e.closedTrades, 0)
+  const segments = [
+    ...top6.map((e, i) => ({ label: e.handle, n: e.closedTrades, color: RK_COLORS[i]! })),
+    ...(restClosed > 0 ? [{ label: '其他', n: restClosed, color: RK_COLORS[5]! }] : []),
+  ]
+  const share = (n: number) => ((n / Math.max(1, totalClosed)) * 100).toFixed(1)
+
   return (
     <>
       <Header title="排行榜" />
-      <UnderlineTabs
-        tabs={[
-          { id: 'return', label: '總報酬率' },
-          { id: 'winrate', label: '勝率' },
-        ]}
-        value={sort}
-        onChange={setSort}
-      />
-      <div className="sub" style={{ paddingTop: 10 }}>
-        只列入券商驗證（Level 2）的實盤績效，報酬率為時間加權。
-      </div>
-      <div className="pad" style={{ paddingTop: 0 }}>
-        <a href="#/compare">比較兩位交易員 →</a>
-      </div>
-      {error && <div className="notice warn">{error}</div>}
-      {data?.entries.length === 0 && <div className="empty">還沒有符合資格的交易員。需通過券商 API 驗證並累積足夠交易紀錄。</div>}
-      {/* Phones: the list. Desktop: a table with a bar per trader, scaled to the best return on the page. */}
-      <div className="lb-mobile">{data?.entries.map((e) => <TraderRow key={e.handle} e={e} metric={sort} />)}</div>
-      {data && data.entries.length > 0 && (
-        <div className="lb-table" role="table" aria-label="交易員排行榜">
-          <div className="lb-row lb-head" role="row">
-            <span role="columnheader">#</span>
-            <span role="columnheader">交易員</span>
-            <span role="columnheader">總報酬（時間加權）</span>
-            <span role="columnheader">勝率</span>
-            <span role="columnheader">平倉</span>
-          </div>
-          {data.entries.map((e) => {
-            const width = (Math.abs(e.totalReturn) / best) * 100
-            return (
-              <a key={e.handle} href={`#/t/${e.handle}`} className="lb-row" role="row">
-                <span className="lb-rank num" role="cell">{String(e.rank).padStart(2, '0')}</span>
-                <span className="lb-who" role="cell">
-                  <Avatar handle={e.handle} size={32} v={e.avatarV} />
-                  <strong>{e.handle}</strong>
-                  <VerifiedBadge />
-                </span>
-                <span className="lb-ret" role="cell">
-                  <span className={`num lb-ret-val ${tone(e.totalReturn)}`}>{pct(e.totalReturn)}</span>
-                  <span className="lb-track" aria-hidden="true">
-                    <span className={`lb-fill ${tone(e.totalReturn)}`} style={{ width: `${width}%` }} />
-                  </span>
-                </span>
-                <span className="num" role="cell">{(e.winRate * 100).toFixed(0)}%</span>
-                <span className="num" role="cell">{e.closedTrades}</span>
-              </a>
-            )
-          })}
+      <div className="rk-hero">
+        <div className="rk-eyebrow">THE LEADERBOARD</div>
+        <h1 className="rk-title">交易員排行榜</h1>
+        <p className="rk-sub">只列入券商驗證（Level 2）的實盤績效。報酬率為時間加權；交易紀錄依各交易員設定的延遲公開。</p>
+        <div className="rk-meta">
+          <span className="rk-live">● 每 30 秒更新</span>
+          <span className="muted small">{loaded ? `${entries.length} 位交易員符合資格` : '載入中…'}</span>
         </div>
+        <div className="rk-tabs" role="tablist" aria-label="排序方式">
+          {[
+            { id: 'return' as const, label: '總報酬率' },
+            { id: 'winrate' as const, label: '勝率' },
+          ].map((t) => (
+            <button key={t.id} role="tab" aria-selected={sort === t.id} className={`rk-tab ${sort === t.id ? 'on' : ''}`} onClick={() => setSort(t.id)}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {error && <div className="notice warn">{error}</div>}
+      {loaded && entries.length === 0 && <div className="empty">還沒有符合資格的交易員。需通過券商 API 驗證並累積足夠交易紀錄。</div>}
+
+      {entries.length > 0 && (
+        <>
+          <div className="rk-section">
+            <span className="rk-num">01</span>
+            <h2 className="rk-h">總覽</h2>
+          </div>
+          <div className="rk-cards">
+            <div className="rk-card">
+              <div className="rk-card-k">總報酬最高</div>
+              <div className="rk-card-v">
+                {topReturn && (
+                  <a href={`#/t/${topReturn.handle}`} className="handle-name">
+                    <strong>{topReturn.handle}</strong>
+                    <VerifiedBadge />
+                  </a>
+                )}
+              </div>
+              <div className={`num small ${tone(topReturn?.totalReturn ?? 0)}`}>{topReturn ? pct(topReturn.totalReturn) : '—'}</div>
+            </div>
+            <div className="rk-card">
+              <div className="rk-card-k">勝率最高</div>
+              <div className="rk-card-v">
+                {topWinRate && (
+                  <a href={`#/t/${topWinRate.handle}`} className="handle-name">
+                    <strong>{topWinRate.handle}</strong>
+                    <VerifiedBadge />
+                  </a>
+                )}
+              </div>
+              <div className="num small muted">{topWinRate ? `${(topWinRate.winRate * 100).toFixed(0)}% · ${topWinRate.closedTrades} 筆平倉` : '—'}</div>
+            </div>
+            <div className="rk-card">
+              <div className="rk-card-k">已平倉交易</div>
+              <div className="rk-card-v num">{totalClosed.toLocaleString('en-US')}</div>
+              <div className="small muted">{entries.length} 位交易員合計</div>
+            </div>
+          </div>
+
+          <div className="rk-section">
+            <span className="rk-num">02</span>
+            <h2 className="rk-h">平倉筆數分布</h2>
+            <span className="muted small rk-aside">前六名各佔的比例</span>
+          </div>
+          <div className="rk-stack" role="img" aria-label="平倉筆數分布">
+            {segments.map((s) => (
+              <span key={s.label} style={{ width: `${(s.n / Math.max(1, totalClosed)) * 100}%`, background: s.color }} title={`${s.label}：${s.n} 筆`} />
+            ))}
+          </div>
+          <div className="rk-legend">
+            {segments.map((s) => (
+              <span key={s.label}>
+                <span className="rk-dot" style={{ background: s.color }} />
+                {s.label} <span className="num">{share(s.n)}%</span>
+              </span>
+            ))}
+          </div>
+
+          <div className="rk-section">
+            <span className="rk-num">03</span>
+            <h2 className="rk-h">交易員</h2>
+          </div>
+          <input
+            className="rk-search"
+            type="search"
+            aria-label="搜尋上榜交易員"
+            placeholder="搜尋上榜交易員 ID"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+          />
+          {shown.length === 0 && <div className="empty">沒有符合「{q}」的交易員。</div>}
+
+          {/* Phones: the list. Desktop: the table below. */}
+          <div className="lb-mobile">{shown.map((e) => <TraderRow key={e.handle} e={e} metric={sort} />)}</div>
+          {shown.length > 0 && (
+            <div className="lb-table" role="table" aria-label="交易員排行榜">
+              <div className="lb-row lb-head" role="row">
+                <span role="columnheader">#</span>
+                <span role="columnheader">交易員</span>
+                <span role="columnheader">總報酬（時間加權）</span>
+                <span role="columnheader">勝率</span>
+                <span role="columnheader">平倉</span>
+              </div>
+              {shown.map((e) => {
+                const width = (Math.abs(e.totalReturn) / best) * 100
+                return (
+                  <a key={e.handle} href={`#/t/${e.handle}`} className="lb-row" role="row">
+                    <span className="lb-rank num" role="cell">{String(e.rank).padStart(2, '0')}</span>
+                    <span className="lb-who" role="cell">
+                      <Avatar handle={e.handle} size={32} v={e.avatarV} />
+                      <strong>{e.handle}</strong>
+                      <VerifiedBadge />
+                    </span>
+                    <span className="lb-ret" role="cell">
+                      <span className={`num lb-ret-val ${tone(e.totalReturn)}`}>{pct(e.totalReturn)}</span>
+                      <span className="lb-track" aria-hidden="true">
+                        <span className={`lb-fill ${tone(e.totalReturn)}`} style={{ width: `${width}%` }} />
+                      </span>
+                    </span>
+                    <span className="num" role="cell">{(e.winRate * 100).toFixed(0)}%</span>
+                    <span className="num" role="cell">{e.closedTrades}</span>
+                  </a>
+                )
+              })}
+            </div>
+          )}
+          <div className="rk-foot muted small">
+            <a href="#/compare">比較兩位交易員 →</a>
+          </div>
+        </>
       )}
     </>
   )
